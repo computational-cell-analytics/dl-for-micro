@@ -1,5 +1,9 @@
 # dl-for-micro
 
-Example projects to demonstrate deep learning applications for microscopy image analysis.
+## What is this?
 
-Lorem ipsum
+## What do you need to know before starting?
+
+## What will you learn?
+
+## How to start?
