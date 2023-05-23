@@ -3,7 +3,7 @@ channels:
     - nvidia
     - conda-forge
 name:
-    torch-em
+    dl-for-micro
 dependencies:
     - affogato
     - bioimageio.core >=0.5.0
