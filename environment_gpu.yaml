@@ -3,10 +3,11 @@ channels:
     - nvidia
     - conda-forge
 name:
-    torch-em
+    dl-for-micro
 dependencies:
     - affogato
     - bioimageio.core >=0.5.0
+    - jupyter
     - napari
     - pycocotools
     - python-elf
@@ -17,6 +18,7 @@ dependencies:
     - torchvision
     - tqdm
     - kornia
+    - pip
     - pip:
         - git+https://github.com/facebookresearch/segment-anything.git
         - git+https://github.com/constantinpape/torch-em.git
