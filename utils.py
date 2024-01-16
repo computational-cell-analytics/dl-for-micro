@@ -70,12 +70,6 @@ def inspector(name, node):
 with h5py.File(file_path, "r") as f:
     f.visititems(inspector)
 
-# get all image file paths using glob, which allows to select files with '*' wildcards
-# e.g. glob('*.h5') will select all files that have the .h5 file ending
-file_paths = glob(os.path.join(data_folder, "*.h5"))
-file_paths.sort()
-print("You have selected", len(file_paths), "files")
-
 # convert images from hd5 to tiff:
 # extract 5 images from 1 hd5 file and
 # put them in a designated directory
@@ -113,23 +107,8 @@ def convert_hdf5_to_tif(paths, file_folders):
 
 # need file_folder names for later use
 file_folders = []
+# file_paths contains all hd5 file paths+names
 convert_hdf5_to_tif(file_paths, file_folders)
-
-# get new file_paths of the .tif images and
-# get file_dir_paths to each folder containing .tif files
-file_paths = []
-file_dir_paths = []
-for path, subdirs, files in os.walk(data_folder):
-    for name in files:
-        if name.endswith(".tif"):
-            file_paths.append(os.path.join(path, name))
-file_dir_paths = [x[0] for x in os.walk(data_folder)]
-file_dir_paths.remove("data")
-file_dir_paths.sort()
-
-# create the train, validation (val) and test splits by creating sub-folders for each split
-# and copying the respective files there
-# 
 
 def divide_data(n_train, n_val): 
 
@@ -155,6 +134,6 @@ def divide_data(n_train, n_val):
 train_folder, val_folder, test_folder = divide_data(35, 5)
 
 # double check that we have the correct number of images in the split folders
-print("We have", len(os.listdir(train_folder)), "training images")
-print("We have", len(os.listdir(val_folder)), "validation images")
-print("We have", len(os.listdir(test_folder)), "test images")
+print("We have", len(os.listdir(train_folder)), "training images in", train_folder)
+print("We have", len(os.listdir(val_folder)), "validation images in", val_folder)
+print("We have", len(os.listdir(test_folder)), "test images in", test_folder)
