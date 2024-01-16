@@ -110,22 +110,6 @@ file_folders = []
 # file_paths contains all hd5 file paths+names
 convert_hdf5_to_tif(file_paths, file_folders)
 
-# # get new file_paths of the .tif images and
-# # get file_dir_paths to each folder containing .tif files
-# file_paths = []
-# file_dir_paths = []
-# for path, subdirs, files in os.walk(data_folder):
-#     for name in files:
-#         if name.endswith(".tif"):
-#             file_paths.append(os.path.join(path, name))
-# file_dir_paths = [x[0] for x in os.walk(data_folder)]
-# file_dir_paths.remove("data")
-# file_dir_paths.sort()
-
-# create the train, validation (val) and test splits by creating sub-folders for each split
-# and copying the respective files there
-# 
-
 def divide_data(n_train, n_val): 
 
     train_folder = os.path.join(data_folder, "train")
