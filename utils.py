@@ -14,18 +14,11 @@ from tqdm import tqdm
 # saving images to tif formats
 import imageio.v3 as imageio
 
-# this is the folder where all data is stored.
-data_folder = "data"
-os.makedirs(data_folder, exist_ok=True)
-
-# the data is on zenodo
-data_url = "https://zenodo.org/record/5092850/files/covid-if-groundtruth.zip?download=1"
-
 # download the data using the requests library
-
 # this function is for downloading the data.
 # you don't need to understand what's going on here.
 def download_url(url, path):
+    # If the file to be downloaded already exists, quit here.
     if os.path.isfile(path):
         return 
     with requests.get(url, stream=True) as r:
@@ -40,9 +33,6 @@ def download_url(url, path):
             copyfileobj(r_raw, f)
 
 
-# run the download function to donwnload the data to the file 'data.zip' in the data folder
-download_url(data_url, os.path.join(data_folder, "data.zip"))
-
 # unzip the data using the zipfile library
 # function for unzipping the archive we have just downloaded and then removing the zip
 def unzip(zip_path, dst, remove=True):
@@ -50,13 +40,7 @@ def unzip(zip_path, dst, remove=True):
         f.extractall(dst)
     if remove:
         os.remove(zip_path)
-unzip(os.path.join(data_folder, "data.zip"), data_folder, remove=False)
 
-# You should see that 49 files have been downloaded and that they have the file extension .h5.
-# This extension stands for HDF5 files. HDF5 is a hierarchical data format that can store multiple datasets in a single file.
-# Now we inspect the content of one of these files using the h5py library:
-file_paths = glob(os.path.join(data_folder, "*.h5"))
-file_path = file_paths[0]
 
 # We use a visitor pattern to check out the contents of the file.
 # the 'inspector' function will be called for each element in the file hierarchy.
@@ -67,8 +51,6 @@ def inspector(name, node):
     if isinstance(node, h5py.Dataset):
         print("The h5 file contains a dataset @", name, "with shape", node.shape)
 
-with h5py.File(file_path, "r") as f:
-    f.visititems(inspector)
 
 # convert images from hd5 to tiff:
 # extract 5 images from 1 hd5 file and
@@ -104,13 +86,9 @@ def convert_hdf5_to_tif(paths, file_folders):
             move(img_name, os.path.join(img_dir, os.path.basename(img_name)))
 
         count += 1
+    return file_folders
 
-# need file_folder names for later use
-file_folders = []
-# file_paths contains all hd5 file paths+names
-convert_hdf5_to_tif(file_paths, file_folders)
-
-def divide_data(n_train, n_val): 
+def divide_data(n_train, n_val, file_folders): 
 
     train_folder = os.path.join(data_folder, "train")
     os.makedirs(train_folder, exist_ok=True)
@@ -131,9 +109,55 @@ def divide_data(n_train, n_val):
             move(os.path.join(data_folder,test_image_dir), os.path.join(test_folder, os.path.basename(test_image_dir)))
     return train_folder, val_folder, test_folder
 
-train_folder, val_folder, test_folder = divide_data(35, 5)
+# function to combine all data preparation steps 
+def prepare_data(data_folder="data"):
+    """
+    :param string data_folder: folder for saving the data
+    :returns:
+        - train_folder - path to folder with subfolders for training data
+        - val_folder - path to folder with subfolders for validation data
+        - test_folder - path to folder with subfolders for testing data
+    """
+    os.makedirs(data_folder, exist_ok=True)
+    data_url = "https://zenodo.org/record/5092850/files/covid-if-groundtruth.zip?download=1"
+    download_url(data_url, os.path.join(data_folder, "data.zip"))
+    unzip(os.path.join(data_folder, "data.zip"), data_folder, remove=True)
+    file_paths = glob(os.path.join(data_folder, "*.h5"))
+    file_folders = convert_hdf5_to_tif(file_paths, file_folders)
+    train_folder, val_folder, test_folder = divide_data(35, 5, file_folders)
+    return train_folder, val_folder, test_folder
 
-# double check that we have the correct number of images in the split folders
-print("We have", len(os.listdir(train_folder)), "training images in", train_folder)
-print("We have", len(os.listdir(val_folder)), "validation images in", val_folder)
-print("We have", len(os.listdir(test_folder)), "test images in", test_folder)
+
+if __name__ == "__main__":
+
+    # this is the folder where all data is stored.
+    data_folder = "data"
+    os.makedirs(data_folder, exist_ok=True)
+
+    # the data is on zenodo
+    data_url = "https://zenodo.org/record/5092850/files/covid-if-groundtruth.zip?download=1"
+
+    # run the download function to donwnload the data to the file 'data.zip' in the data folder
+    download_url(data_url, os.path.join(data_folder, "data.zip"))
+
+    # run the unzip function
+    unzip(os.path.join(data_folder, "data.zip"), data_folder, remove=False)
+
+    # check the hdf5 files
+    file_paths = glob(os.path.join(data_folder, "*.h5"))
+    
+    with h5py.File(file_paths[0], "r") as f:
+        f.visititems(inspector)
+    
+    # need file_folder names for later use
+    # only contains base name from path (e.g. /root/data -> data)
+    file_folders = []
+    # file_paths contains all hd5 file paths+names
+    file_folders = convert_hdf5_to_tif(file_paths, file_folders)
+
+    train_folder, val_folder, test_folder = divide_data(35, 5, file_folders)
+
+    # double check that we have the correct number of images in the split folders
+    print("We have", len(os.listdir(train_folder)), "training images in", train_folder)
+    print("We have", len(os.listdir(val_folder)), "validation images in", val_folder)
+    print("We have", len(os.listdir(test_folder)), "test images in", test_folder)
