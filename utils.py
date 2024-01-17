@@ -55,7 +55,7 @@ def inspector(name, node):
 # convert images from hd5 to tiff:
 # extract 5 images from 1 hd5 file and
 # put them in a designated directory
-def convert_hdf5_to_tif(paths, file_folders):
+def convert_hdf5_to_tif(paths, file_folders, data_folder):
     count = 0
     for file_path in tqdm(paths):
       with h5py.File(file_path,'r') as f:
@@ -88,7 +88,7 @@ def convert_hdf5_to_tif(paths, file_folders):
         count += 1
     return file_folders
 
-def divide_data(n_train, n_val, file_folders): 
+def divide_data(n_train, n_val, file_folders, data_folder): 
 
     train_folder = os.path.join(data_folder, "train")
     os.makedirs(train_folder, exist_ok=True)
@@ -121,43 +121,17 @@ def prepare_data(data_folder="data"):
     os.makedirs(data_folder, exist_ok=True)
     data_url = "https://zenodo.org/record/5092850/files/covid-if-groundtruth.zip?download=1"
     download_url(data_url, os.path.join(data_folder, "data.zip"))
-    unzip(os.path.join(data_folder, "data.zip"), data_folder, remove=True)
-    file_paths = glob(os.path.join(data_folder, "*.h5"))
-    file_folders = convert_hdf5_to_tif(file_paths, file_folders)
-    train_folder, val_folder, test_folder = divide_data(35, 5, file_folders)
-    return train_folder, val_folder, test_folder
-
-
-if __name__ == "__main__":
-
-    # this is the folder where all data is stored.
-    data_folder = "data"
-    os.makedirs(data_folder, exist_ok=True)
-
-    # the data is on zenodo
-    data_url = "https://zenodo.org/record/5092850/files/covid-if-groundtruth.zip?download=1"
-
-    # run the download function to donwnload the data to the file 'data.zip' in the data folder
-    download_url(data_url, os.path.join(data_folder, "data.zip"))
-
-    # run the unzip function
     unzip(os.path.join(data_folder, "data.zip"), data_folder, remove=False)
-
-    # check the hdf5 files
     file_paths = glob(os.path.join(data_folder, "*.h5"))
-    
-    with h5py.File(file_paths[0], "r") as f:
-        f.visititems(inspector)
-    
-    # need file_folder names for later use
-    # only contains base name from path (e.g. /root/data -> data)
     file_folders = []
-    # file_paths contains all hd5 file paths+names
-    file_folders = convert_hdf5_to_tif(file_paths, file_folders)
-
-    train_folder, val_folder, test_folder = divide_data(35, 5, file_folders)
-
+    file_folders = convert_hdf5_to_tif(file_paths, file_folders, data_folder)
+    train_folder, val_folder, test_folder = divide_data(35, 5, file_folders, data_folder)
     # double check that we have the correct number of images in the split folders
     print("We have", len(os.listdir(train_folder)), "training images in", train_folder)
     print("We have", len(os.listdir(val_folder)), "validation images in", val_folder)
     print("We have", len(os.listdir(test_folder)), "test images in", test_folder)
+
+
+if __name__ == "__main__":
+
+    prepare_data()
