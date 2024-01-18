@@ -13,6 +13,8 @@ import requests
 from tqdm import tqdm
 # saving images to tif formats
 import imageio.v3 as imageio
+from numpyencoder import NumpyEncoder
+import json
 
 # download the data using the requests library
 # this function is for downloading the data.
@@ -65,26 +67,48 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
         cells = f["labels/cells/s0"][:]
         infected_labels = f["labels/infected/nuclei/s0"][:]
         serum_image = f["raw/serum_IgG/s0"][:]
+        nuclei_labels = f["labels/nuclei/s0"][:] 
+        table_infected = f["tables/infected_labels/cells"][:]
         #print(f'Image Dataset info: Shape={marker.shape},Dtype={marker.dtype}')
         img_ds = {
             "marker": marker, 
             "nucleus_image": nucleus_image, 
             "cells": cells, 
             "infected_labels": infected_labels,
-            "serum_image": serum_image 
+            "serum_image": serum_image,
+            "serum_image": serum_image, 
+            "nucleus_label": nuclei_labels
         }
         # create a subdirectory for each hd5 file
         folder_name = f"gt_image_{count:03}"
         file_folders.append(folder_name)
         img_dir = os.path.join(data_folder, folder_name)
         os.makedirs(img_dir, exist_ok=True)
-
+        bboxes = {}
         for key, value in img_ds.items():
             img_name = f"{img_dir}_{key}.tif"
             imageio.imwrite(img_name, value, compression="zlib")
+            if "cells" in img_name:
+                im = imageio.imread(img_name)
+                regions = regionprops(im)
+                for props in regions:
+                    bboxes[props.label] = props.bbox
             # copy to subdirectoy
             move(img_name, os.path.join(img_dir, os.path.basename(img_name)))
-
+        # convert from byte to float, then to int
+        table_infected = (table_infected.astype(float)).astype(int)
+        labels = {
+            "cells": [
+            {
+                "cell_id": id_value,
+                "infected_label": status,
+                "bbox": bboxes[id_value] if id_value in bboxes.keys() else None
+            } for id_value, status in zip(table_infected[:,0], table_infected[:,1])
+            ]
+        }
+        with open("labels.json", "w") as f:
+            json.dump(labels, f, ensure_ascii=False, cls=NumpyEncoder)
+        move("labels.json", os.path.join(img_dir, "labels.json"))
         count += 1
     return file_folders
 
