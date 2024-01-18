@@ -84,7 +84,7 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
         file_folders.append(folder_name)
         img_dir = os.path.join(data_folder, folder_name)
         os.makedirs(img_dir, exist_ok=True)
-        bboxes = []
+        bboxes = {}
         for key, value in img_ds.items():
             img_name = f"{img_dir}_{key}.tif"
             imageio.imwrite(img_name, value, compression="zlib")
@@ -92,7 +92,7 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
                 im = imageio.imread(img_name)
                 regions = regionprops(im)
                 for props in regions:
-                    bboxes.append(props.bbox)
+                    bboxes[props.label] = props.bbox
             # copy to subdirectoy
             move(img_name, os.path.join(img_dir, os.path.basename(img_name)))
         # convert from byte to float, then to int
@@ -101,10 +101,10 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
             "cells": [
             {
                 "cell_id": id_value,
-                "infected_status": status,
+                "infected_label": status,
+                "bbox": bboxes[id_value] if id_value in bboxes.keys() else None
             } for id_value, status in zip(table_infected[:,0], table_infected[:,1])
-            ],
-            "bboxes": bboxes
+            ]
         }
         with open("labels.json", "w") as f:
             json.dump(labels, f, ensure_ascii=False, cls=NumpyEncoder)
