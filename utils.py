@@ -73,11 +73,11 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
         img_ds = {
             "marker": marker, 
             "nucleus_image": nucleus_image, 
-            "cells": cells, 
+            "cell_labels": cells, 
             "infected_labels": infected_labels,
             "serum_image": serum_image,
             "serum_image": serum_image, 
-            "nucleus_label": nuclei_labels
+            "nucleus_labels": nuclei_labels
         }
         # create a subdirectory for each hd5 file
         folder_name = f"gt_image_{count:03}"
