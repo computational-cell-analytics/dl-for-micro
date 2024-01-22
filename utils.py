@@ -76,7 +76,6 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
             "cell_labels": cells, 
             "infected_labels": infected_labels,
             "serum_image": serum_image,
-            "serum_image": serum_image, 
             "nucleus_labels": nuclei_labels
         }
         # create a subdirectory for each hd5 file
