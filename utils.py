@@ -87,7 +87,7 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
         for key, value in img_ds.items():
             img_name = f"{img_dir}_{key}.tif"
             imageio.imwrite(img_name, value, compression="zlib")
-            if "cells" in img_name:
+            if "cell" in img_name:
                 im = imageio.imread(img_name)
                 regions = regionprops(im)
                 for props in regions:
