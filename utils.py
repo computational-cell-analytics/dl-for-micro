@@ -71,13 +71,12 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
         table_infected = f["tables/infected_labels/cells"][:]
         #print(f'Image Dataset info: Shape={marker.shape},Dtype={marker.dtype}')
         img_ds = {
-            "marker": marker, 
+            "marker_image": marker, 
             "nucleus_image": nucleus_image, 
-            "cells": cells, 
+            "cell_labels": cells, 
             "infected_labels": infected_labels,
             "serum_image": serum_image,
-            "serum_image": serum_image, 
-            "nucleus_label": nuclei_labels
+            "nucleus_labels": nuclei_labels
         }
         # create a subdirectory for each hd5 file
         folder_name = f"gt_image_{count:03}"
@@ -88,7 +87,7 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
         for key, value in img_ds.items():
             img_name = f"{img_dir}_{key}.tif"
             imageio.imwrite(img_name, value, compression="zlib")
-            if "cells" in img_name:
+            if "cell" in img_name:
                 im = imageio.imread(img_name)
                 regions = regionprops(im)
                 for props in regions:
