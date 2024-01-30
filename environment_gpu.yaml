@@ -21,7 +21,6 @@ dependencies:
     - kornia
     - pip
     - pip:
-        - NumpyEncoder
         - git+https://github.com/facebookresearch/segment-anything.git
         - git+https://github.com/constantinpape/torch-em.git
         - git+https://github.com/computational-cell-analytics/micro-sam.git
