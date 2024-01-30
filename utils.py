@@ -58,6 +58,8 @@ class CustomEncoder(json.JSONEncoder):
             return obj.tolist()
         elif isinstance(obj, np.int64):
             return int(obj)
+        elif isinstance(obj, np.int32):
+            return int(obj)
         return super(CustomEncoder, self).default(obj)
 
         

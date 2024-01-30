@@ -9,6 +9,7 @@ dependencies:
     - bioimageio.core >=0.5.0
     - jupyter
     - napari
+    - pyqt
     - pycocotools
     - python-elf
     - pytorch
