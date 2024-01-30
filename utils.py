@@ -52,17 +52,6 @@ def inspector(name, node):
         print("The h5 file contains a dataset @", name, "with shape", node.shape)
 
 
-# Assuming labels is a dictionary containing various types including NumPy arrays
-def convert_to_serializable(obj):
-    if isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, np.int64):
-        return int(obj)
-    elif isinstance(obj, list):
-        return [convert_to_serializable(item) for item in obj]
-    else:
-        return obj
-
 class CustomEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
