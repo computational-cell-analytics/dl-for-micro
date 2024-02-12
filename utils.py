@@ -10,7 +10,7 @@ import requests
 from tqdm import tqdm
 # saving images to tif formats
 import imageio.v3 as imageio
-#from numpyencoder import NumpyEncoder
+# from numpyencoder import NumpyEncoder
 import json
 import numpy as np
 
@@ -62,7 +62,7 @@ class CustomEncoder(json.JSONEncoder):
             return int(obj)
         return super(CustomEncoder, self).default(obj)
 
-        
+
 # convert images from hd5 to tiff:
 # extract 5 images from 1 hd5 file and
 # put them in a designated directory
@@ -116,7 +116,7 @@ def convert_hdf5_to_tif(paths, file_folders, data_folder):
             }
             # Assuming labels is a dictionary containing various types including NumPy arrays and int64
             labels_serializable = {key: value for key, value in labels.items()}
-            
+
             # Write to JSON file using the custom encoder
             with open("labels.json", "w") as f:
                 json.dump(labels_serializable, f, ensure_ascii=False, cls=CustomEncoder)
