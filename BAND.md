@@ -1,11 +1,11 @@
 # Using BAND for the course
 
-Here is a step guide for running the course exercises on BAND.
+Here is a step-by-step guide for running the exercises on BAND.
 - Go to [https://band.embl.de](https://band.embl.de)
-    - Agree to the terms of services and privacy note and log in.
-    - You can then log in with your google account. If you are logging in the first time this may take a while.
+    - Agree to the terms of services and privacy note and click on `LOGIN`.
+    - You can then log in with your google account. If you log in for in the first time this may take a while.
 - After you have logged in, start an online desktop:
-    - Choose the number of CPUs (recommended: 4), memory (recommended: 24GB) and number of GPUs (1) and click launch. See 1. in the overview below.
+    - Choose the number of CPUs (recommended: 4), memory (recommended: 24GB) and number of GPUs (1) and click launch. See 1. in the overview figure below.
         - You can also set a time limit (default: 2 days). After this time your desktop will be shut down (you can then start a new one).
     - After a few seconds an item should appear in `Running desktops`. Click `GO TO DESKTOP` to connect to it.
     - If you already have a desktop running you don't need to start a new one, just connect to the existing one.
@@ -13,20 +13,24 @@ Here is a step guide for running the course exercises on BAND.
     - Open a terminal by clicking the terminal symbol in the top left corner, see 2. in the overview. This will open a terminal window.
     - Then enter `git clone https://github.com/computational-cell-analytics/dl-for-micro` in it and press enter.
     - This will download all materials for the course.
-- Now you can start jupyter, which we use to work on the exercises:
+- Now you can start jupyter, which we use to run the exercises:
     - Click on the `Applications` button in the top left corner and then select `Programming->JupyterLab`.
     - This will open a new window (it may take up to a minute) with the jupyter environment.
     - You can now open any of the exercises with it. They are in the folder `dl-for-micro` (that you have downloaded earlier). See 3. in the overview.
     - We recommend that you start with the notebook `data-visualization-napari`.
-    - To run it (and the other notebooks), you need to select the kernel `micro_sam`. See 4. in the overview.
+    - To run it (and the other exercises), you need to select the kernel `micro_sam`. See 4. in the overview.
+
+![band-overview](https://github.com/computational-cell-analytics/dl-for-micro/assets/4263537/00ee541b-5a96-456d-ab23-1b7bae639433)
 
 ## Tips & Tricks
 
-Because BAND is running in the browser, the shortcuts you know for copying and pasting text are not working quite as usual. It is however very convenient to copy and paste text between your laptop and BAND, and to copy and paste inside of jupyter, so it's good to learn how this works in BAND:
+Because BAND is running in the browser, the shortcuts you know for copying and pasting text are not working quite as usual. It is however very convenient to copy and paste text between your laptop and BAND, and to copy and paste inside of jupyter, so here is how this works in BAND:
 
 **Copy and paste between your laptop and BAND:**
 - Press `Ctrl + Shift + Alt` in your browser window with BAND. This will open a text field that you can use to copy and paste into from your laptop and from BAND. (See screenshot below).
-- To copy from your laptop to BAND, first copy the text on your laptop (e.g. via `Ctrl + C`), then paste it into the window opened via `Ctrl + Shift + Alt`, then select the text again there and copy it (`Ctrl + C`). Now you can close the window (by pressing `Ctrl + Shift + Alt` again), and then paste the text within BAND.
+- To copy from your laptop to BAND, first copy the text on your laptop (e.g. via `Ctrl + C`), then paste it into the window (opened via `Ctrl + Shift + Alt`), then select the text again there and copy it (`Ctrl + C`). Now you can close the window (by pressing `Ctrl + Shift + Alt` again), and then paste the text within BAND.
+
+![band-copy-paste](https://github.com/computational-cell-analytics/dl-for-micro/assets/4263537/4d3c95c2-8443-4aab-bc56-2bfef5b74b86)
 
 **Copy and paste in jupyter:**
 - It is often very convenient to copy and paste text or code when working in jupyter. You can do this via the following shortcuts:
