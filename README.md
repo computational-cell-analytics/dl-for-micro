@@ -25,7 +25,7 @@ Under construction!
 
 ### On BAND
 
-[BAND](https://band.embl.de/#) is a online service for image analysis. It is free of charge and it offers a pre-installed environment for the [exercises](pytorch-exercises). Follow [this link](TODO) for a step-by-step guide for how to run the course on BAND.
+[BAND](https://band.embl.de/#) is a online service for image analysis. It is free of charge and it offers a pre-installed environment for the [exercises](pytorch-exercises). Follow [this link](https://github.com/computational-cell-analytics/dl-for-micro/blob/main/BAND.md) for a step-by-step guide for how to run the course on BAND.
 
 ### On your own computer
 
