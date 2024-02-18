@@ -1,5 +1,54 @@
-# Tutorials for Deep Learning in Microscopy
+# Introduction to Deep Learning for Microscopy
 
+Do you want to learn how to use deep learning for solving your microscopy image analysis tasks?
+Then you have come to the right spot!
+
+We offer materials for an introductory course on the topic, containing video lectures, exercises that show step by step how to build deep learning models for microscopy with [PyTorch](https://pytorch.org/) and advanced examples that explain how to use several of the most popular deep learning based tools.
+
+Sparked your interest?
+- Check out the [content](#content)!
+- See how you can work on the exercises [on publicly available resources](#on-band) or how to [set them up on your own computer](#on-your-own-computer).
+- Check out the [recommended prior knowledge and further reading](#recommended-knowledge-and-further-reading).
+
+## Content
+
+Under construction!
+
+### Video Lectures
+
+### PyTorch Exercises
+
+### Advanced Examples
+
+
+## Getting started
+
+### On BAND
+
+[BAND](https://band.embl.de/#) is a online service for image analysis. It is free of charge and it offers a pre-installed environment for the [exercises](pytorch-exercises). Follow [this link](TODO) for a step-by-step guide for how to run the course on BAND.
+
+### On your own computer
+
+<!---
+If you do not have a conda installation we suggest to install [mamba](https://github.com/mamba-org/mamba) via the [mambaforge](https://github.com/conda-forge/miniforge#mambaforge) installation.
+
+Create the conda environment from `environment-gpu.yaml`. Note: you may need to change the cuda version [here](https://github.com/computational-cell-analytics/dl-for-micro/blob/main/environment_gpu.yaml#L15).
+```
+$ conda env create -f environment_gpu.yaml
+```
+This will install the environment `dl-for-micro` with all necessary dependencies.
+After setting up the environment the following should work (activate the environment first with `conda activate dl-for-micro`):
+```
+$ python -c "import torch_em"
+$ python -c "import micro_sam"
+```
+Tip: use [mamba](https://github.com/mamba-org/mamba) instead of `conda` if creating the environment with `conda` takes very long.
+-->
+
+## Recommended Knowledge and Further Reading
+
+
+<!---
 This repository contains tutorials for deep learning applications in microscopy, with the focus on segmentation and classification tasks.
 Currently, we provide notebooks that demonstrate:
 - Applying pre-trained models from [bioimage.io](https://bioimage.io/).
@@ -39,28 +88,7 @@ In addition there is an **Exercise** section that lists optional exercises you c
 
 ### Installation
 
-If you do not have a conda installation we suggest to install [mamba](https://github.com/mamba-org/mamba) via the [mambaforge](https://github.com/conda-forge/miniforge#mambaforge) installation.
-
-Create the conda environment from `environment-gpu.yaml`. Note: you may need to change the cuda version [here](https://github.com/computational-cell-analytics/dl-for-micro/blob/main/environment_gpu.yaml#L15).
-```
-$ conda env create -f environment_gpu.yaml
-```
-This will install the environment `dl-for-micro` with all necessary dependencies.
-After setting up the environment the following should work (activate the environment first with `conda activate dl-for-micro`):
-```
-$ python -c "import torch_em"
-$ python -c "import micro_sam"
-```
-Tip: use [mamba](https://github.com/mamba-org/mamba) instead of `conda` if creating the environment with `conda` takes very long.
-
 
 ### BAND
 
-[BAND](https://band.embl.de/#) is a cloud desktop for image analysis provided by EMBL Heidelberg. We provide an environment with the necessary dependencies to run the notebooks there.
-To use it follow these steps:
-- Log in to BAND
-- Go to `Applications` (top left) and select `Applications->Programming->DL-Course(Pytorch)`
-- This will open jupyter lab. You can run the notebooks with it using the `dl-for-micro` kernel.
-    - When you first open a notebook you will be asked which kernel to use. Choose `dl-for-micro`. You can also change the kernel later in the notebook by clicking on the kernel name on the top right of the notebook.
-
-Tip: BAND offers using a GPU. When you start the desktop you can request it by setting `No. of. GPUs` to 1. Also, to run all notebooks smoothly you may want to increase the `No. of. CPUs` to 4 and the `Memory` to 16.
+-->
