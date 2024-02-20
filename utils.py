@@ -13,6 +13,7 @@ import imageio.v3 as imageio
 # from numpyencoder import NumpyEncoder
 import json
 import numpy as np
+import torch
 
 
 # download the data using the requests library
@@ -151,6 +152,38 @@ def divide_data(n_train, n_val, file_folders, data_folder):
     return train_folder, val_folder, test_folder
 
 
+# This function takes a multi-channel input tensor and flattens it into a 2D tensor 
+# by moving the channel axis to the first position and then flattening all other axes.
+def flatten_samples(input_):
+    # Get number of channels
+    num_channels = input_.size(1)
+    # Permute the channel axis to first
+    permute_axes = list(range(input_.dim()))
+    permute_axes[0], permute_axes[1] = permute_axes[1], permute_axes[0]
+    # For input shape (say) NCHW, this should have the shape CNHW
+    permuted = input_.permute(*permute_axes).contiguous()
+    # Now flatten out all but the first axis and return
+    flattened = permuted.view(num_channels, -1)
+    return flattened
+
+# This function computes the Dice similarity coefficient between the predicted input and the target. 
+# It's commonly used in evaluating the performance of segmentation models.
+def dice_score(input_, target, eps=1e-7):
+    assert input_.shape == target.shape, f"{input_.shape}, {target.shape}"
+    # Flatten input and target to have the shape (C, N),
+    # where N is the number of samples
+    input_ = flatten_samples(torch.sigmoid(input_))
+    target = flatten_samples(target)
+    # Compute numerator and denominator (by summing over samples and
+    # leaving the channels intact)
+    numerator = (input_ * target).sum(-1)
+    denominator = (input_ * input_).sum(-1) + (target * target).sum(-1)
+    channelwise_score = 2 * (numerator / denominator.clamp(min=eps))
+    # take the average score over the channels
+    score = channelwise_score.mean() 
+
+    return score
+    
 # function to combine all data preparation steps
 def prepare_data(data_folder="data", remove_h5=True):
     """
