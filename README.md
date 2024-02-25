@@ -10,24 +10,46 @@ Sparked your interest?
 - See how you can work on the exercises [on publicly available resources](#on-band) or how to [set them up on your own computer](#on-your-own-computer).
 - Check out the [recommended prior knowledge and further reading](#recommended-knowledge-and-further-reading).
 
+
 ## Content
 
-Under construction!
+This course consists of lectures and exercises that teach the background of deep learning for image analysis and show applications to classification and segmentation analysis problems.
 
 ### Video Lectures
 
+Coming soon.
+
 ### PyTorch Exercises
 
-### Advanced Examples
+These exercises demonstrate how to use PyTorch for image analysis for several tasks on a microscopy image analysis problem. 
+We recommend that you work on these exercises in this order:
+1. `data-visualization-napari`: will give you an overview of the data used in the exercise and give an introduction to [napari](https://napari.org/stable/), which is the image viewer we will use throughout the exercises.
+2. `cell_classification/pytorch/train_infection_classifier`: will teach you how to train and apply a neural network for cell classification.
+3. `nucleus_segmentation/bioimageio/pretrained_segmentation`: will teach you how to apply a pretrained segmentation network from [bioimageio.io](https://bioimage.io/#/).
+4. `cell_segmentation/pytorch/train_cell_segmentation`: will teach you how to train and apply a U-Net for cell segmentation.
+
+We provide two additional exercises that show you how to annotate your own data, so that you can create training data for applying what you have learned to your own analysis problems:
+- `data_annotation/segment_anything`: will teach you how to use [Segment Anything for Microscopy](https://www.biorxiv.org/content/10.1101/2023.08.21.554208v1.abstract) to interactively annotate training data for segmentation.
+- `data_annotation/class_annotation`: will teach you how to annotate data for classifcation with napari.
+
+### Exercises for Other Tools
+
+Coming soon.
 
 
-## Getting started
+## Getting Started
 
 ### On BAND
 
 [BAND](https://band.embl.de/#) is a online service for image analysis. It is free of charge and it offers a pre-installed environment for the [exercises](pytorch-exercises). Follow [this link](https://github.com/computational-cell-analytics/dl-for-micro/blob/main/BAND.md) for a step-by-step guide for how to run the course on BAND.
 
-### On your own computer
+### On your own Computer
+
+Coming soon.
+
+### On Kaggle
+
+Coming soon.
 
 <!---
 If you do not have a conda installation we suggest to install [mamba](https://github.com/mamba-org/mamba) via the [mambaforge](https://github.com/conda-forge/miniforge#mambaforge) installation.
@@ -46,6 +68,8 @@ Tip: use [mamba](https://github.com/mamba-org/mamba) instead of `conda` if creat
 -->
 
 ## Recommended Knowledge and Further Reading
+
+Coming soon.
 
 
 <!---
