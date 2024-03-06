@@ -11,7 +11,7 @@ mamba env create -f environment_cpu.yaml
 - GPU version: [environment_gpu.yaml](https://github.com/computational-cell-analytics/dl-for-micro/blob/main/environment_gpu.yaml)
   Create the environment via
 ```
-mamba env crete -f environment_gpu.yaml
+mamba env create -f environment_gpu.yaml
 ```
 
 Note: you may need to change the CUDA version to match your system [here](https://github.com/computational-cell-analytics/dl-for-micro/blob/main/environment_gpu.yaml#L15).
