@@ -1,0 +1,257 @@
+Bootstrap: docker
+From: rockylinux/rockylinux:8
+
+%files
+    /sw/viz/jupyterhub-nhr/jupyter-containers/data/gwdg.repo /etc/yum.repos.d/gwdg.repo
+    /sw/viz/jupyterhub-nhr/jupyter-containers/data/Xorg.0.log /var/log/Xorg.0.log
+    /sw/viz/jupyterhub-nhr/jupyter-containers/data/update-desktop-files.sh /usr/local/share/update-desktop-files.sh
+    /sw/viz/jupyterhub-nhr/jupyter-containers/data/audio-proxy.sh /usr/local/bin/audio-proxy.sh
+    /sw/viz/jupyterhub-nhr/jupyter-containers/data/audio-plugin.js /usr/local/share/audio-plugin.js
+
+%post
+
+    curl -o /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8 https://ftp.gwdg.de/pub/linux/fedora/epel/RPM-GPG-KEY-EPEL-8    
+
+    # Configure repositories
+    rm -f /etc/yum.repos.d/[^g]*
+
+    echo "max_parallel_downloads=15" >> /etc/dnf/dnf.conf
+    echo "exclude=rocky-repos rocky-release" >> /etc/dnf/dnf.conf
+    echo "8.10" > /etc/dnf/vars/releasever
+    echo "8" > /etc/dnf/vars/majorver
+    echo "pub/linux/rocky" > /etc/dnf/vars/contentdir
+
+    dnf update -y
+    
+    # Create slurmuser
+    groupadd -g 450 slurm
+    useradd -m -c "SLURM workload manager" -d /var/lib/slurm -u 450 -g slurm -s /bin/bash slurm
+
+    # Create slurmuser
+    # Install basic system tools
+    dnf install -y make gcc wget curl file perl tcl tcsh openssh htop Lmod \
+        openssl ca-certificates python3.11-pip python3.11-setuptools-rust
+    pip3.11 install --upgrade pip
+
+    # Install jupyter dependencies (jupyterhub, jupyter-remote-desktop-proxy, websockify)
+    # Unfortunately, we have to build websockify manually to get rebind.so, as that is not distributed.
+    python3.11 -m venv /opt/jupyter
+    export PATH=/opt/jupyter/bin:$PATH
+
+    # websockify
+    build_dir=/root/websockify
+    mkdir $build_dir
+    wget https://github.com/novnc/websockify/archive/refs/tags/v0.12.0.tar.gz
+    tar --extract --strip-components 1 --directory $build_dir --file v0.12.0.tar.gz
+    rm v0.12.0.tar.gz
+    python3.11 -m pip install $build_dir
+
+    # Compile rebind.so
+    pushd $build_dir
+    make
+    cp -v rebind.so /opt/jupyter/lib
+    cp -v rebind.so /usr/local/lib
+    popd
+    rm -rf $build_dir
+
+    python3.11 -m pip install 'jupyter-remote-desktop-proxy>=3.0.1' jupyterhub
+    install_dir=$(pip show jupyter-remote-desktop-proxy| awk '/^Location:/ { print $2 }')
+
+    ln -s /opt/jupyter/bin/jupyterhub-singleuser /usr/local/bin
+    ln -s /opt/jupyter/bin/websockify /usr/local/bin
+
+    # Link xstartup file
+    ln -s /sw/scc-sw /opt/sw
+    ln -sf /sw/viz/jupyterhub-nhr/gwdg-custom-datascience-notebook/desktop.xstartup ${install_dir}/jupyter_remote_desktop_proxy/share/xstartup
+
+
+    # Installing the nvidia drivers and libraries
+    #NVIDIA_VER="550.144.03-1.el8" # remember to also adjust kmod-nvidia
+    NVIDIA_VER="550.163.01-1.el8" # remember to also adjust kmod-nvidia
+
+    mkdir /root/nvidia-rpms
+    pushd /root/nvidia-rpms
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/nvidia-driver-${NVIDIA_VER}.x86_64.rpm
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/nvidia-driver-libs-${NVIDIA_VER}.x86_64.rpm
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/nvidia-driver-cuda-${NVIDIA_VER}.x86_64.rpm
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/nvidia-driver-cuda-libs-${NVIDIA_VER}.x86_64.rpm
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/nvidia-kmod-common-${NVIDIA_VER}.noarch.rpm
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/kmod-nvidia-550.163.01-4.18.0-553.50.1-550.163.01-3.el8_10.x86_64.rpm
+    curl -O https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/nvidia-persistenced-${NVIDIA_VER}.x86_64.rpm
+
+    dnf install -y *.rpm
+    popd
+    rm -rf /root/nvidia-rpms
+   
+
+    # Install VNC requirements (turbovnc, dbus, virtualgl, mesa, etc)
+    dnf install -y tigervnc-server tigervnc-server-module dbus-x11 VirtualGL \
+        libevent libXrender libxcrypt glx-utils mesa-dri-drivers mesa-libGLU libglvnd-opengl libglvnd-egl
+    
+    # Install GNOME desktop environment (and GUI programs)
+    dnf group list
+    dnf group list --hidden
+    dnf groupinstall -y "base-x" "GNOME Desktop Environment" "GNOME Applications"
+
+    dnf install -y qt5-qtbase-gui icu libicu50 emacs vim-enhanced nedit neovim geany gedit firefox fakeroot bash-completion bind-utils telnet vlc
+    dnf install -y atk fftw-libs libatomic libgfortran libnsl libXScrnSaver mesa-libOSMesa sqlite strace xcb-util-cursor xdg-utils PackageKit
+    dnf install -y vlc vlc-extras qt5-qtsvg
+
+    # VDPAU drivers (used for encoding videos, not actually needed for the VirtualGL image pipeline)
+    dnf install -y libvdpau mesa-vdpau-drivers libva-vdpau-driver libva-utils vdpauinfo
+
+    rm -f /etc/profile.d/PackageKit.sh
+
+    # Fonts
+    dnf install -y dejavu-sans-fonts liberation-fonts mathjax-ams-fonts redhat-display-fonts google-roboto-fonts
+
+    # Fix xkb-lib
+    rm -rf /var/lib/xkb
+    ln -s /tmp/xkb /var/lib/xkb
+
+    dnf install -y cudnn
+    dnf install -y git
+
+    # Append commands for conda environment and jupyter notebooks
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+    export MAMBA_ROOT_PREFIX=$HOME/micromamba
+    eval "$(./bin/micromamba shell hook -s posix)"    
+    # Linux/bash:
+    ./bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
+    # sourcing the bashrc file incorporates the changes into the running session.
+    source ~/.bashrc
+
+    micromamba activate
+
+    # environment for micro-sam, sarcasm, trackastra
+    micromamba create -n hsc_course python=3.11 -y
+    micromamba activate hsc_course 
+    # exclusive conda-forge setup
+    micromamba config append channels conda-forge
+    micromamba config set channel_priority strict
+
+    # Install jupyter notebook packages and CUDA
+    micromamba install --quiet --yes \
+        notebook \
+        jupyterhub \
+        jupyterlab
+
+    # Here you can add your own python packages
+
+    micromamba install --quiet --yes \
+        jupyter \
+        napari \
+        pyqt \
+        pycocotools \
+        python-elf \
+        tensorboard \
+        tifffile \
+        tqdm \
+        torch_em \
+        micro_sam 
+
+    # CUDA installation has to go through pip
+    export MAMBA_PREFIX=$HOME/micromamba/envs/hsc_course
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
+    python3.11 -m pip install torch torchvision torchaudio
+
+    # install other repositories
+    python3.11 -m pip install git+https://github.com/computational-cell-analytics/synapse-net
+    git clone https://github.com/computational-cell-analytics/synapse-net
+    cd synapse-net
+    python3.11 -m pip install -e .
+    cd ..
+    python3.11 -m pip install trackastra
+    python3.11 -m pip install sarc-asm
+
+    # environment for Cellpose
+    micromamba deactivate
+    micromamba create -n cellpose python=3.11 -y
+    micromamba activate cellpose
+    # exclusive conda-forge setup
+    micromamba config append channels conda-forge
+    micromamba config set channel_priority strict
+
+    # Install jupyter notebook packages and CUDA
+    micromamba install --quiet --yes \
+        notebook \
+        jupyterhub \
+        jupyterlab \
+        matplotlib
+
+    # Here you can add your own python packages
+    # python3.11 -m pip install cellpose
+    python3.11 -m pip install cellpose --upgrade
+    python3.11 -m pip install cellpose[gui]
+
+    export MAMBA_PREFIX=$HOME/micromamba/envs/cellpose
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
+    python3.11 -m pip install torch torchvision torchaudio
+
+    # environment for stardist
+    micromamba deactivate
+    micromamba create -n stardist python=3.11 -y
+    micromamba activate stardist
+    # exclusive conda-forge setup
+    micromamba config append channels conda-forge
+    micromamba config set channel_priority strict
+
+    # Install jupyter notebook packages and CUDA
+    micromamba install --quiet --yes \
+        notebook \
+        jupyterhub \
+        jupyterlab
+
+    python3.11 -m pip install 'tensorflow[and-cuda]'
+    python3.11 -m pip install stardist
+    python3.11 -m pip install 'numpy<2'
+
+    # Override gnome-session-quit to kill the container and end the job
+    # (Unfortunately also removes the countdown.)
+    echo -e '#!/bin/bash\nkill $(pgrep -u $(id -u) gnome-session)' > /usr/bin/gnome-session-quit
+    
+    # Audio passthrough (doesnt work yet)
+    #dnf install -y socat gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free
+    #mkdir -p /etc/pulse/default.pa.d
+    #echo "load-module module-simple-protocol-tcp listen=127.0.0.1 format=s16le channels=2 rate=48000 record=true playback=false" > /etc/pulse/default.pa.d/simple-protocol.pa
+    #sed -i "/'websockify',/a \            '--token-plugin=UnixDomainSocketDirectory',\n            f'--token-source={sockets_dir}'," ${install_dir}/jupyter_remote_desktop_proxy/setup_websockify.py
+    #sed -i '/+ websockify_args/d' ${install_dir}/jupyter_remote_desktop_proxy/setup_websockify.py
+    #sed -i "s/, f'cd/, f'\/usr\/local\/bin\/audio-proxy.sh -u {sockets_dir}\/audio \& cd/g" ${install_dir}/jupyter_remote_desktop_proxy/setup_websockify.py
+    #mv /usr/local/share/audio-plugin.js ${install_dir}/jupyter_remote_desktop_proxy/static/dist/audio-plugin.js
+    #sed -i '/<\/script>/a     <script type="module" crossorigin="anonymous" src="{{base_url}}desktop/static/dist/audio-plugin.js"><\/script>' ${install_dir}/jupyter_remote_desktop_proxy/templates/index.html
+    #sed -i 's/desktop-websockify\/",/desktop-websockify\/?token=vnc-socket",/g' ${install_dir}/jupyter_remote_desktop_proxy/static/dist/viewer.js
+
+    echo "micromamba shell init --shell bash --root-prefix=/root/micromamba"  > $HOME/activate_micromamba.sh
+    echo "source ~/.bashrc" >> $HOME/activate_micromamba.sh
+
+    # test micro-sam
+    cmd_array=(	'"import micro_sam.util as util;'
+	'import numpy as np;'
+	"x=(np.random.rand(256,256)*255).astype('uint8');"
+	'model=util.get_sam_model();'
+	'util.precompute_image_embeddings(model,x)"')
+    cmd="${cmd_array[*]}"
+    echo python3.11 -c "$cmd" > $HOME/test_micro-sam.sh
+
+    # test CUDA availability
+    cmd_array=( '"import torch;'
+        'torch.cuda.is_available()"')
+    cmd="${cmd_array[*]}"
+    echo python3.11 -c "$cmd" > $HOME/test_cuda.sh
+    
+    chmod u+x $HOME/activate_micromamba.sh
+    chmod u+x $HOME/test_micro-sam.sh
+    chmod u+x $HOME/test_cuda.sh
+
+%environment
+    # firefox does not work with user.max_net_namespaces=0
+    export MOZ_ASSUME_USER_NS=0
+    export JUPYTERHUB_DEFAULT_URL="/desktop"
+    export PATH="${PATH}:/usr/local/slurm/current/install/bin"
+    export XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share"
+    export PS1=" \u@\h \W \$ "
+
+
+
+
+
