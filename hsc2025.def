@@ -83,7 +83,6 @@ From: rockylinux/rockylinux:8
     popd
     rm -rf /root/nvidia-rpms
    
-
     # Install VNC requirements (turbovnc, dbus, virtualgl, mesa, etc)
     dnf install -y tigervnc-server tigervnc-server-module dbus-x11 VirtualGL \
         libevent libXrender libxcrypt glx-utils mesa-dri-drivers mesa-libGLU libglvnd-opengl libglvnd-egl
@@ -122,13 +121,13 @@ From: rockylinux/rockylinux:8
     source ~/.bashrc
 
     micromamba activate
+    # exclusive conda-forge setup
+    micromamba config append channels conda-forge
+    micromamba config set channel_priority strict
 
     # environment for micro-sam, sarcasm, trackastra
     micromamba create -n hsc_course python=3.11 -y
     micromamba activate hsc_course 
-    # exclusive conda-forge setup
-    micromamba config append channels conda-forge
-    micromamba config set channel_priority strict
 
     # Install jupyter notebook packages and CUDA
     micromamba install --quiet --yes \
@@ -168,9 +167,6 @@ From: rockylinux/rockylinux:8
     micromamba deactivate
     micromamba create -n cellpose python=3.11 -y
     micromamba activate cellpose
-    # exclusive conda-forge setup
-    micromamba config append channels conda-forge
-    micromamba config set channel_priority strict
 
     # Install jupyter notebook packages and CUDA
     micromamba install --quiet --yes \
@@ -179,8 +175,7 @@ From: rockylinux/rockylinux:8
         jupyterlab \
         matplotlib
 
-    # Here you can add your own python packages
-    # python3.11 -m pip install cellpose
+    # Cellpose packages
     python3.11 -m pip install cellpose --upgrade
     python3.11 -m pip install cellpose[gui]
 
@@ -190,18 +185,16 @@ From: rockylinux/rockylinux:8
 
     # environment for stardist
     micromamba deactivate
-    micromamba create -n stardist python=3.11 -y
+    micromamba create -n stardist python=3.11 napari pyqt stardist-napari -y
     micromamba activate stardist
-    # exclusive conda-forge setup
-    micromamba config append channels conda-forge
-    micromamba config set channel_priority strict
 
-    # Install jupyter notebook packages and CUDA
+    # Install jupyter notebook packages
     micromamba install --quiet --yes \
         notebook \
         jupyterhub \
         jupyterlab
 
+    # Install tensorflow
     python3.11 -m pip install 'tensorflow[and-cuda]'
     python3.11 -m pip install stardist
     python3.11 -m pip install 'numpy<2'
