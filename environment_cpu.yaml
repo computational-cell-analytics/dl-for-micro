@@ -1,10 +1,8 @@
 channels:
-    - pytorch
     - conda-forge
 name:
     dl-for-micro
 dependencies:
-    - cpuonly
     - bioimageio.core >=0.5.0
     - jupyter
     - napari
@@ -12,7 +10,6 @@ dependencies:
     - pycocotools
     - python-elf
     - pytorch
-    - pytorch-cuda>=11.7  # you may need to change the pytorch version to match your system
     - tensorboard
     - tifffile
     - torchvision
