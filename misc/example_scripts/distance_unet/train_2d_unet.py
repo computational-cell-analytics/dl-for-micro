@@ -1,87 +1,86 @@
+# Import functionality for getting filepaths.
+from glob import glob
+
 # Import the required functionality from torch-em.
 import torch_em
-from torch_em.model import AnisotropicUNet
+from torch_em.model import UNet2d
 from torch_em.util.debug import check_loader
 
+from sklearn.model_selection import train_test_split
 
-# Download the example data. Here, we use 3D fluorescent microscopy data of nuclei.
+
+# Download the example data. Here, we use the same data as in the exercises.
 def download_example_data():
-    from torch_em.data.datasets.light_microscopy.embedseg_data import get_embedseg_data
-    get_embedseg_data("./data", "Mouse-Skull-Nuclei-CBG", download=True)
+    from torch_em.data.datasets.light_microscopy.covid_if import get_covid_if_data
+    get_covid_if_data("../data/covid-if", download=True)
 
 
 # Get the paths to the data. The data we have downloaded is stored in hdf5 files.
 # Your data will likely be stored as tif files, which is also supported.
 def get_data_paths(split):
-    # We have two 3D files in the training data folder for this dataset.
-    # We use one of them for training and the other for validation
-    train_image_path = "./data/Mouse-Skull-Nuclei-CBG/train/images/X1.tif"
-    train_label_path = "./data/Mouse-Skull-Nuclei-CBG/train/masks/Y1.tif"
-
-    val_image_path = "./data/Mouse-Skull-Nuclei-CBG/train/images/X2_left.tif"
-    val_label_path = "./data/Mouse-Skull-Nuclei-CBG/train/masks/Y2_left.tif"
-
+    # Get all file paths, then split them into a training and validation set
+    # with functionality from scikit-learn.
+    all_paths = sorted(glob("../data/covid-if/*.h5"))
+    train_paths, val_paths = train_test_split(all_paths, test_size=0.1, random_state=42)
     # Return the file paths for training images and labels, or for validation images
     # and labeles, depending on which split was requested.
     if split == "train":
-        return train_image_path, train_label_path
+        # Note: The hdf5 files contain both the image data and the label data,
+        # stored i different internal datasets. That's why we return two times
+        # the same list of paths, for images and labels here.
+        # If you have tifs then you have to return the image paths and the label paths.
+        return train_paths, train_paths
     elif split == "val":
-        return val_image_path, val_label_path
+        return val_paths, val_paths
     else:
         raise ValueError(f"Invalid split: {split}")
 
 
-# Create the 3D U-Net for anisotropic data.
-# Here, you can set the anisotropy factors for each level of the U-Net.
-# The example here is for data with anisotropic factor of 2.
-scale_factors = [
-    [1, 2, 2],
-    [2, 2, 2],
-    [2, 2, 2],
-    [2, 2, 2],
-]
-model = AnisotropicUNet(
+# Create the 2D U-Net.
+model = UNet2d(
     in_channels=1,  # The number of input channels, 1 for a single input channel, etc.
-    out_channels=2,  # The number of output channels. Here, we predict foreground and boundary channel, so two output channels.
-    scale_factors=scale_factors,
+    out_channels=3,  # The number of output channels. Here, we predict foreground and two distance channels.
     final_activation="Sigmoid",  # The activation applied to the output channels.
 )
 
 
 # Define the label and image transformation:
 # The label transformation is applied to the label data within the data loader.
-# Here, we use the 'BoundaryTransform', which turns instance labels into boundaries.
-# Setting 'add_binary_target=True', adds the foreground/background signal as additional channel.
-label_transform = torch_em.transform.label.BoundaryTransform(
-    add_binary_target=True, ndim=3,
+# Here, we use the transform to create per object normalized center and boundary
+# distances + a foreground channel.
+label_transform = torch_em.transform.label.PerObjectDistanceTransform(
+    distances=True, boundary_distances=True, foreground=True
 )
 # The transformation appied to the image data. Here, we standardize the data,
 # which means subtracting its mean and dividing by its standard deviation.
 raw_transform = torch_em.transform.raw.standardize
 
 # Define the loss function and the metric:
-# Here, we use the Dice Loss both as loss function and as metric.
-loss = torch_em.loss.DiceLoss()
-metric = torch_em.loss.DiceLoss()
+# Here, we use a dice loss for the distances, both as loss function and as metric.
+loss = torch_em.loss.distance_based.DiceBasedDistanceLoss(mask_distances_in_bg=True)
+metric = torch_em.loss.distance_based.DiceBasedDistanceLoss(mask_distances_in_bg=True)
 
 # YOU NEED TO ADAPT THE NEXT LINES FOR YOUR DATA.
 # Download the example data and get the paths for training and val sets.
 download_example_data()
-train_image_path, train_label_path = get_data_paths(split="train")
-val_image_path, val_label_path = get_data_paths(split="val")
+train_image_paths, train_label_paths = get_data_paths(split="train")
+val_image_paths, val_label_paths = get_data_paths(split="val")
 
+# The internal dataset names for the hdf5 files.
+raw_key = "/raw/serum_IgG/s0"
+label_key = "/labels/cells/s0"
 # If you have tif files, then set 'raw_key' and 'label_key' to None:
-raw_key = None
-label_key = None
+# raw_key = None
+# label_key = None
 
 # Create the data loaders:
 # The function below automatically creates suitable data loaders.
-batch_size = 1  # Set the batch size.
-patch_shape = (32, 256, 256)  # Set the patch shape: how big is a volume tile for training.
+batch_size = 4  # Set the batch size.
+patch_shape = (256, 256)  # Set the patch shape: how big is an image tile for training.
 train_loader = torch_em.segmentation.default_segmentation_loader(
-    raw_paths=train_image_path,
+    raw_paths=train_image_paths,
     raw_key=raw_key,
-    label_paths=train_label_path,
+    label_paths=train_label_paths,
     label_key=label_key,
     batch_size=batch_size,
     patch_shape=patch_shape,
@@ -89,9 +88,9 @@ train_loader = torch_em.segmentation.default_segmentation_loader(
     raw_transform=raw_transform,
 )
 val_loader = torch_em.segmentation.default_segmentation_loader(
-    raw_paths=val_image_path,
+    raw_paths=val_image_paths,
     raw_key=raw_key,
-    label_paths=val_label_path,
+    label_paths=val_label_paths,
     label_key=label_key,
     batch_size=batch_size,
     patch_shape=patch_shape,
@@ -110,7 +109,7 @@ if check_loaders:
 
 # Create the trainer:
 # The trainer class implements all relevant logic for model training, validation, etc.
-name = "my-3d-model"  # Set the name of your model. Checkpoints will be saved under this name.
+name = "my-model"  # Set the name of your model. Checkpoints will be saved under this name.
 # IMPORTANT: IF YOU START A NEW TRAINING YOU HAVE TO CHANGE THE NAME.
 # OTHERWISE YOUR PREVIOUS CHECKPOINTS WILL BE OVER-WRITTEN.
 learning_rate = 1e-4  # Set the learning rate.
@@ -130,7 +129,7 @@ trainer = torch_em.default_segmentation_trainer(
 # Run training:
 # Now we start the training. We can set either a number of iterations for training
 # (set here to 5000) or set a number of epochs (use "epochs=number_of_epochs" instead).
-number_of_iterations = 10000
+number_of_iterations = 5000
 trainer.fit(iterations=number_of_iterations)
 
 # The checkpoints of your trained model will be saved in the folder 'checkpoints':

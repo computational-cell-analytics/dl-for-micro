@@ -7,7 +7,7 @@ from torch_em.util.debug import check_loader
 # Download the example data. Here, we use 3D fluorescent microscopy data of nuclei.
 def download_example_data():
     from torch_em.data.datasets.light_microscopy.embedseg_data import get_embedseg_data
-    get_embedseg_data("./data", "Mouse-Skull-Nuclei-CBG", download=True)
+    get_embedseg_data("../data", "Mouse-Skull-Nuclei-CBG", download=True)
 
 
 # Get the paths to the data. The data we have downloaded is stored in hdf5 files.
@@ -15,11 +15,11 @@ def download_example_data():
 def get_data_paths(split):
     # We have two 3D files in the training data folder for this dataset.
     # We use one of them for training and the other for validation
-    train_image_path = "./data/Mouse-Skull-Nuclei-CBG/train/images/X1.tif"
-    train_label_path = "./data/Mouse-Skull-Nuclei-CBG/train/masks/Y1.tif"
+    train_image_path = "../data/Mouse-Skull-Nuclei-CBG/train/images/X1.tif"
+    train_label_path = "../data/Mouse-Skull-Nuclei-CBG/train/masks/Y1.tif"
 
-    val_image_path = "./data/Mouse-Skull-Nuclei-CBG/train/images/X2_left.tif"
-    val_label_path = "./data/Mouse-Skull-Nuclei-CBG/train/masks/Y2_left.tif"
+    val_image_path = "../data/Mouse-Skull-Nuclei-CBG/train/images/X2_left.tif"
+    val_label_path = "../data/Mouse-Skull-Nuclei-CBG/train/masks/Y2_left.tif"
 
     # Return the file paths for training images and labels, or for validation images
     # and labeles, depending on which split was requested.
@@ -42,7 +42,7 @@ scale_factors = [
 ]
 model = AnisotropicUNet(
     in_channels=1,  # The number of input channels, 1 for a single input channel, etc.
-    out_channels=2,  # The number of output channels. Here, we predict foreground and boundary channel, so two output channels.
+    out_channels=3,  # The number of output channels. Here, we predict foreground and two distance channels.
     scale_factors=scale_factors,
     final_activation="Sigmoid",  # The activation applied to the output channels.
 )
@@ -50,19 +50,20 @@ model = AnisotropicUNet(
 
 # Define the label and image transformation:
 # The label transformation is applied to the label data within the data loader.
-# Here, we use the 'BoundaryTransform', which turns instance labels into boundaries.
-# Setting 'add_binary_target=True', adds the foreground/background signal as additional channel.
-label_transform = torch_em.transform.label.BoundaryTransform(
-    add_binary_target=True, ndim=3,
+# Here, we use the transform to create per object normalized center and boundary
+# distances + a foreground channel.
+label_transform = torch_em.transform.label.PerObjectDistanceTransform(
+    distances=True, boundary_distances=True, foreground=True
 )
+
 # The transformation appied to the image data. Here, we standardize the data,
 # which means subtracting its mean and dividing by its standard deviation.
 raw_transform = torch_em.transform.raw.standardize
 
 # Define the loss function and the metric:
-# Here, we use the Dice Loss both as loss function and as metric.
-loss = torch_em.loss.DiceLoss()
-metric = torch_em.loss.DiceLoss()
+# Here, we use a dice loss for the distances, both as loss function and as metric.
+loss = torch_em.loss.distance_based.DiceBasedDistanceLoss(mask_distances_in_bg=True)
+metric = torch_em.loss.distance_based.DiceBasedDistanceLoss(mask_distances_in_bg=True)
 
 # YOU NEED TO ADAPT THE NEXT LINES FOR YOUR DATA.
 # Download the example data and get the paths for training and val sets.

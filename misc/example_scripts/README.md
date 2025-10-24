@@ -5,6 +5,8 @@ This example folder contains three scripts:
 - `train_3d_unet.py`: For training a 3D UNet with [torch_em](https://github.com/constantinpape/torch-em).
 - `predict_unet.py`: For running prediction with your trained model.
 
+The folder `distance_unet` contains alternate versions of the scripts for training U-Nets for distance-based instance segmentation.
+
 It also contains a script for fine-tuning micro-sam:
 - `sam_finetuning.ipynb`
 
