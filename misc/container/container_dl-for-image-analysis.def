@@ -140,7 +140,10 @@ From: rockylinux/rockylinux:8
         notebook \
         jupyterhub \
         jupyterlab \
-        matplotlib
+        matplotlib \
+        torchvision \
+        torchaudio \
+        pytorch-gpu
 
     # Cellpose packages
     # python3.11 -m pip install "cellpose[gui]<4" "pyqt6<6.10"
@@ -148,7 +151,6 @@ From: rockylinux/rockylinux:8
 
     export MAMBA_PREFIX=$HOME/micromamba/envs/cellpose
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
-    pip install torch torchvision torchaudio
 
     # environment for StarDist
     micromamba deactivate
@@ -195,12 +197,14 @@ From: rockylinux/rockylinux:8
         tifffile \
         tqdm \
         torch_em \
-        micro_sam
+        micro_sam \
+        torchvision \
+        torchaudio \
+        pytorch-gpu
 
     # CUDA installation has to go through pip
     export MAMBA_PREFIX=$HOME/micromamba/envs/hsc_course
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
-    python3.11 -m pip install torch torchvision torchaudio
 
     # install other repositories
     python3.11 -m pip install git+https://github.com/ChaoningZhang/MobileSAM
