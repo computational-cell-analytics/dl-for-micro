@@ -146,8 +146,7 @@ From: rockylinux/rockylinux:8
         pytorch-gpu
 
     # Cellpose packages
-    # python3.11 -m pip install "cellpose[gui]<4" "pyqt6<6.10"
-    python3.11 -m pip install cellpose --upgrade
+    python3.11 -m pip install "cellpose[gui]<4" "pyqt6<6.10"
 
     export MAMBA_PREFIX=$HOME/micromamba/envs/cellpose
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
