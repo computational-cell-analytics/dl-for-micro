@@ -10,6 +10,7 @@ Visit [Jupyter HPC of the GWDG](https://jupyter.hpc.gwdg.de/hub/spawn) and sign 
 #### Option 2. For general usage 
 Start a Jupyter Desktop session on HPC.  
 **IMPORTANT:** In the “Advanced” section you find “Custom Container Location”. Make sure the box is ticked and enter following path:
+
 `/mnt/vast-standard/projects/scc_umin_pape_course_dlforia25/dl-for-image-analysis.sif`  
 
 <img width="880" height="1069" alt="Screenshot from 2025-11-05 08-11-31" src="https://github.com/user-attachments/assets/932dc72b-9ccd-4e59-8a75-5c3ec6a6c1e4" />
