@@ -73,6 +73,23 @@ You should see the folder structure on the left side.
 
 The `hsc_course` environment features packages for the work with `µsam`. Because the interplay between different software is quite complex, two other environments are used for the work with `Cellpose` and `StarDist`. You can activate them the same way as for `hsc_course`. To deactivate an environment use `micromamba deactivate`.
 
+### Pre-staged bioimage.io model (nucleus segmentation)
+
+The compute nodes have restricted internet, so the online download of the bioimage.io model
+in `nucleus_segmentation/bioimageio/pretrained_segmentation.ipynb`
+(`bioimageio.load_model_description("affable-shark")`) can fail.
+
+As a failsafe, the model is pre-staged as a self-contained zip in the shared project space:
+```
+/mnt/vast-standard/projects/scc_umin_pape_course_dlforia26/models/affable-shark.zip
+```
+The notebook loads this copy automatically when it exists (falling back to the online download
+otherwise). To point it at a different location without editing the notebook, set the env var
+`BIOIMAGEIO_MODEL_ZIP=/path/to/affable-shark.zip`.
+
+To refresh the model, re-create the zip on a machine with internet
+(`bioimageio package affable-shark ./affable-shark.zip`) and copy it back to the path above.
+
 ### Issues
 The connection to the Desktop might be unstable, so that the status **Disconnected** appears in the upper right corner.
 To re-establish the connection, just refresh the page, e.g. by clicking on the jupyter logo in the top left corner.
