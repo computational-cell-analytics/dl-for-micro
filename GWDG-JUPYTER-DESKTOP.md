@@ -1,13 +1,13 @@
+# Starting the GWDG Jupyter Desktop for the Course
 
-Visit [Jupyter HPC of the GWDG](https://jupyter.hpc.gwdg.de/hub/spawn) and sign in with AcademicCloud.
-### Launch Jupyter Desktop 
-#### Option 1. For usage during HSC course
-* Choose the correct **HPC Project**: Course Deep Learning for Image Analysis
-* CLick on **Profile** (Top right)
-* Choose the correct **Profile ID**: `dl-for-ia-2025`
-<img width="695" height="428" alt="image" src="https://github.com/user-attachments/assets/9f58dde0-6518-4bfd-9e19-408fbf996a80" />
+Go to https://jupyter.hpc.gwdg.de/?profile=dl-for-ia-2026 and sign in with Single Sign On (SSO).
 
-#### Option 2. For general usage 
+For more details check out https://docs.google.com/document/d/1PJAcQyaiizerRujCnRsDOKV_ZFOAYT78nDWWX5B9t18/edit?tab=t.0.
+
+## Starting the GWDG Jupyter Desktop with your Own Account
+
+**This section is only relevant after the course, if you want to use the GWDG resources.**
+
 Start a Jupyter Desktop session on HPC.  
 **IMPORTANT:** In the “Advanced” section you find “Custom Container Location”. Make sure the box is ticked and enter following path:
 
