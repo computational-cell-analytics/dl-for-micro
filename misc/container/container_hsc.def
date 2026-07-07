@@ -5,10 +5,20 @@ From: rockylinux/rockylinux:8
     /sw/viz/jupyterhub-nhr/jupyter-containers/data/gwdg.repo /etc/yum.repos.d/gwdg.repo
     /sw/viz/jupyterhub-nhr/jupyter-containers/data/Xorg.0.log /var/log/Xorg.0.log
     /sw/viz/jupyterhub-nhr/jupyter-containers/data/update-desktop-files.sh /usr/local/share/update-desktop-files.sh
+    /sw/viz/jupyterhub-nhr/jupyter-containers/data/setup_audio_server.py /usr/local/share/setup_audio_server.py
     /sw/viz/jupyterhub-nhr/jupyter-containers/data/audio-proxy.sh /usr/local/bin/audio-proxy.sh
     /sw/viz/jupyterhub-nhr/jupyter-containers/data/audio-plugin.js /usr/local/share/audio-plugin.js
 
 %post
+
+    # /tmp inside the container is a small fixed-size tmpfs (4GiB, already
+    # ~40% used before any package is installed) - this is set up by
+    # apptainer independently of any host-side TMPDIR/APPTAINER_TMPDIR.
+    # pip/tempfile default to /tmp unless TMPDIR is set, so redirect it
+    # to the container's real (Lustre backed, spacious) rootfs instead.
+
+    mkdir -p /root/tmp
+    export TMPDIR=/root/tmp
 
     curl -o /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-8 https://ftp.gwdg.de/pub/linux/fedora/epel/RPM-GPG-KEY-EPEL-8
 
@@ -31,36 +41,18 @@ From: rockylinux/rockylinux:8
     dnf install -y make gcc wget curl file perl tcl tcsh openssh htop Lmod git tmux zsh \
         openssl ca-certificates python3.11-pip python3.11-setuptools-rust man-pages man-db man
 
-    # Install jupyter dependencies (jupyterhub, jupyter-remote-desktop-proxy, websockify)
-    # Unfortunately, we have to build websockify manually to get rebind.so, as that is not distributed.
+    # Put all jupyter dependencies into their own venv
     python3.11 -m venv /opt/jupyter
     export PATH=/opt/jupyter/bin:$PATH
 
-    # websockify
-    build_dir=/root/websockify
-    mkdir $build_dir
-    wget https://github.com/novnc/websockify/archive/refs/tags/v0.12.0.tar.gz
-    tar --extract --strip-components 1 --directory $build_dir --file v0.12.0.tar.gz
-    rm v0.12.0.tar.gz
-    python3.11 -m pip install $build_dir
-
-    # Compile rebind.so
-    pushd $build_dir
-    make
-    cp -v rebind.so /opt/jupyter/lib
-    cp -v rebind.so /usr/local/lib
-    popd
-    rm -rf $build_dir
-
-    python3.11 -m pip install 'jupyter-remote-desktop-proxy>=3.0.1' jupyterhub
-    install_dir=$(pip show jupyter-remote-desktop-proxy| awk '/^Location:/ { print $2 }')
-
+    # Install jupyter dependencies (jupyterhub, jupyter-remote-desktop-proxy)
+    pip install --no-cache-dir 'jupyter-remote-desktop-proxy>=3.0.1' jupyterhub
+    install_dir=$(pip show jupyter-remote-desktop-proxy | awk '/^Location:/ { print $2 }')
     ln -s /opt/jupyter/bin/jupyterhub-singleuser /usr/local/bin
-    ln -s /opt/jupyter/bin/websockify /usr/local/bin
 
     # Link xstartup file
     ln -s /sw/scc-sw /opt/sw
-    ln -sf /sw/viz/jupyterhub-nhr/gwdg-custom-datascience-notebook/desktop.xstartup ${install_dir}/jupyter_remote_desktop_proxy/share/xstartup
+    ln -sf /sw/viz/jupyterhub-nhr/jupyter-containers/desktop.xstartup ${install_dir}/jupyter_remote_desktop_proxy/share/xstartup
 
 
     # Installing the nvidia drivers and libraries
@@ -83,7 +75,6 @@ From: rockylinux/rockylinux:8
     popd
     rm -rf /root/nvidia-rpms
 
-
     # Install VNC requirements (turbovnc, dbus, virtualgl, mesa, etc)
     dnf install -y tigervnc-server tigervnc-server-module dbus-x11 VirtualGL \
         libevent libXrender libxcrypt glx-utils mesa-dri-drivers mesa-libGLU libglvnd-opengl libglvnd-egl
@@ -93,7 +84,7 @@ From: rockylinux/rockylinux:8
     dnf group list --hidden
     dnf groupinstall -y "base-x" "GNOME Desktop Environment" "GNOME Applications"
 
-    dnf install -y qt5-qtbase-gui icu libicu50 emacs vim-enhanced nedit neovim geany gedit firefox fakeroot bash-completion bind-utils telnet vlc
+    dnf install -y qt5-qtbase-gui icu libicu50 emacs vim-enhanced nano nedit neovim geany gedit firefox fakeroot bash-completion bind-utils telnet vlc
     dnf install -y atk fftw-libs libatomic libgfortran libnsl libXScrnSaver mesa-libOSMesa sqlite strace xcb-util-cursor xdg-utils PackageKit
     dnf install -y vlc vlc-extras qt5-qtsvg
 
@@ -120,11 +111,23 @@ From: rockylinux/rockylinux:8
     ./bin/micromamba shell init -s bash -r ~/micromamba  # this writes to your .bashrc file
     # sourcing the bashrc file incorporates the changes into the running session.
     source ~/.bashrc
+    # root's default .bashrc on Rocky commonly aliases mv/rm/cp to their -i
+    # variants; since this build runs in an interactive srun session (a real
+    # TTY), an -i prompt on a later `mv` would hang waiting for input instead
+    # of failing loudly. Clear all inherited aliases to avoid that.
+    unalias -a 2>/dev/null || true
 
     micromamba activate
     # exclusive conda-forge setup
     micromamba config append channels conda-forge
     micromamba config set channel_priority strict
+
+    # The build host has no GPU, so micromamba's solver can't auto-detect the
+    # __cuda virtual package and rejects every pytorch-gpu build that requires
+    # a cuda* variant ("... which is missing on the system"). Override it to
+    # match the driver branch installed above (570.x ships with CUDA 12.8) so
+    # the solver picks a compatible pytorch-gpu build instead of failing.
+    export CONDA_OVERRIDE_CUDA="12.8"
 
     # environment for micro-sam, sarcasm, trackastra
     micromamba create -n hsc_course python=3.11 -y
@@ -136,7 +139,6 @@ From: rockylinux/rockylinux:8
         jupyterhub \
         jupyterlab
 
-    # Here you can add your own python packages
     micromamba install --quiet --yes \
         jupyter \
         napari \
@@ -147,21 +149,24 @@ From: rockylinux/rockylinux:8
         tifffile \
         tqdm \
         torch_em \
-        micro_sam
+        micro_sam \
+        torchvision \
+        torchaudio \
+        pytorch-gpu
 
-    # CUDA installation has to go through pip
     export MAMBA_PREFIX=$HOME/micromamba/envs/hsc_course
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
-    python3.11 -m pip install torch torchvision torchaudio
 
     # install other repositories
-    python3.11 -m pip install git+https://github.com/computational-cell-analytics/synapse-net
+    python3.11 -m pip install --no-cache-dir git+https://github.com/computational-cell-analytics/synapse-net
     git clone https://github.com/computational-cell-analytics/synapse-net
     cd synapse-net
-    python3.11 -m pip install -e .
+    python3.11 -m pip install --no-cache-dir -e .
     cd ..
-    python3.11 -m pip install trackastra
-    python3.11 -m pip install sarc-asm
+    python3.11 -m pip install --no-cache-dir trackastra
+    # removed because of missing module
+    # python3.11 -m pip install --no-cache-dir sarc-asm
+    du -sh "$MAMBA_ROOT_PREFIX"/envs/* "$MAMBA_ROOT_PREFIX"/pkgs 2>/dev/null || true
 
     # environment for Cellpose
     micromamba deactivate
@@ -173,15 +178,13 @@ From: rockylinux/rockylinux:8
         notebook \
         jupyterhub \
         jupyterlab \
-        matplotlib
+        matplotlib \
+        torchvision \
+        torchaudio \
+        pytorch-gpu
 
     # Cellpose packages
-    python3.11 -m pip install cellpose --upgrade
-    python3.11 -m pip install cellpose[gui]
-
-    export MAMBA_PREFIX=$HOME/micromamba/envs/cellpose
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$MAMBA_PREFIX/lib/
-    python3.11 -m pip install torch torchvision torchaudio
+    python3.11 -m pip install --no-cache-dir "cellpose[gui]<4" "pyqt6<6.10"
 
     # environment for stardist
     micromamba deactivate
@@ -195,9 +198,9 @@ From: rockylinux/rockylinux:8
         jupyterlab
 
     # Install tensorflow
-    python3.11 -m pip install 'tensorflow[and-cuda]'
-    python3.11 -m pip install stardist
-    python3.11 -m pip install 'numpy<2'
+    python3.11 -m pip install --no-cache-dir 'tensorflow[and-cuda]'
+    python3.11 -m pip install --no-cache-dir stardist
+    python3.11 -m pip install --no-cache-dir 'numpy<2'
 
     # Override gnome-session-quit to kill the container and end the job
     # (Unfortunately also removes the countdown.)
@@ -207,19 +210,21 @@ From: rockylinux/rockylinux:8
     echo -e '#!/bin/bash\n\nfor var in $(env | egrep -o "^SLURM_[^=]+") LD_PRELOAD\ndo\n    eval unset $var\ndone' > /usr/local/bin/clean_slurm_env
     chmod 755 /usr/local/bin/clean_slurm_env
 
-    # Fixing the client_cert issue with jupyterhub_singleuser (without client cert should return None, not '')
+    # Fix the client_cert issue with jupyterhub_singleuser (without client cert should return None, not '')
     sed -i 's/if self.request.client_cert is not None/if self.request.client_cert is not None and self.request.client_cert != ""/g' /opt/jupyter/lib64/python3.11/site-packages/tornado/simple_httpclient.py
 
-    # Audio passthrough (doesnt work yet)
-    #dnf install -y socat gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free
-    #mkdir -p /etc/pulse/default.pa.d
-    #echo "load-module module-simple-protocol-tcp listen=127.0.0.1 format=s16le channels=2 rate=48000 record=true playback=false" > /etc/pulse/default.pa.d/simple-protocol.pa
-    #sed -i "/'websockify',/a \            '--token-plugin=UnixDomainSocketDirectory',\n            f'--token-source={sockets_dir}'," ${install_dir}/jupyter_remote_desktop_proxy/setup_websockify.py
-    #sed -i '/+ websockify_args/d' ${install_dir}/jupyter_remote_desktop_proxy/setup_websockify.py
-    #sed -i "s/, f'cd/, f'\/usr\/local\/bin\/audio-proxy.sh -u {sockets_dir}\/audio \& cd/g" ${install_dir}/jupyter_remote_desktop_proxy/setup_websockify.py
-    #mv /usr/local/share/audio-plugin.js ${install_dir}/jupyter_remote_desktop_proxy/static/dist/audio-plugin.js
-    #sed -i '/<\/script>/a     <script type="module" crossorigin="anonymous" src="{{base_url}}desktop/static/dist/audio-plugin.js"><\/script>' ${install_dir}/jupyter_remote_desktop_proxy/templates/index.html
-    #sed -i 's/desktop-websockify\/",/desktop-websockify\/?token=vnc-socket",/g' ${install_dir}/jupyter_remote_desktop_proxy/static/dist/viewer.js
+    # Setup audio passthrough
+    dnf install -y socat gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-plugins-bad-free pulseaudio pulseaudio-utils
+    mv /usr/local/share/setup_audio_server.py ${install_dir}/jupyter_remote_desktop_proxy/setup_audio_server.py
+    # Use the jupyter venv's own pip explicitly - by this point in the script
+    # several `micromamba activate` calls have prepended their env's bin/ onto
+    # PATH, so a bare `pip` no longer resolves to /opt/jupyter/bin/pip where
+    # jupyter-remote-desktop-proxy is actually installed.
+    entry_points="${install_dir}/$(/opt/jupyter/bin/pip show -f jupyter-remote-desktop-proxy | grep "entry_points.txt" | xargs)"
+    echo 'desktop-audio = jupyter_remote_desktop_proxy.setup_audio_server:setup_audio_server' >> ${entry_points}
+    mv /usr/local/share/audio-plugin.js ${install_dir}/jupyter_remote_desktop_proxy/static/dist/audio-plugin.js
+    chmod 664 ${install_dir}/jupyter_remote_desktop_proxy/static/dist/audio-plugin.js
+    sed -i '/<\/script>/a     <script src="\{\{base_url\}\}desktop/static/dist/audio-plugin.js"><\/script>' ${install_dir}/jupyter_remote_desktop_proxy/templates/index.html
 
     echo "micromamba shell init --shell bash --root-prefix=/root/micromamba"  > $HOME/activate_micromamba.sh
     echo "source ~/.bashrc" >> $HOME/activate_micromamba.sh
@@ -249,4 +254,4 @@ From: rockylinux/rockylinux:8
     export JUPYTERHUB_DEFAULT_URL="/desktop"
     export PATH="${PATH}:/usr/local/slurm/current/install/bin"
     export XDG_DATA_DIRS="/usr/local/share:/usr/share:/var/lib/flatpak/exports/share"
-    export PS1=" \u@\h \W \$ "
+    export PS1="\u@\h \W \$ "
