@@ -20,6 +20,22 @@ def find_images(input_folder):
     return sorted(image_paths)
 
 
+def output_path_for_image(output_folder, image_path):
+    return Path(output_folder) / f"{Path(image_path).stem}.csv"
+
+
+def filter_images_for_annotation(image_paths, output_folder, continue_annotations):
+    if continue_annotations:
+        return image_paths
+
+    image_paths = [
+        image_path
+        for image_path in image_paths
+        if not output_path_for_image(output_folder, image_path).exists()
+    ]
+    return image_paths
+
+
 def is_rgb_image(image):
     return image.ndim >= 3 and image.shape[-1] in (3, 4)
 
@@ -66,6 +82,22 @@ def save_points_csv(output_path, points):
     table.to_csv(output_path, index=False)
 
 
+def load_points_csv(input_path, ndim):
+    table = pd.read_csv(input_path)
+    axis_columns = sorted(
+        [column for column in table.columns if column.startswith("axis-")],
+        key=lambda column: int(column.split("-")[1]),
+    )
+    if len(axis_columns) == 0:
+        raise ValueError(f"No axis columns found in {input_path}.")
+    if len(axis_columns) != ndim:
+        raise ValueError(
+            f"Expected {ndim} point coordinate columns for this image, "
+            f"but found {len(axis_columns)} in {input_path}."
+        )
+    return table[axis_columns].to_numpy(dtype="float64")
+
+
 def configure_cache_locations(output_folder):
     output_folder = Path(output_folder)
     output_folder.mkdir(parents=True, exist_ok=True)
@@ -101,7 +133,7 @@ class BatchPointAnnotator:
         self.load_current_image()
 
     def output_path(self):
-        return self.output_folder / f"{self.image_paths[self.current_index].stem}.csv"
+        return output_path_for_image(self.output_folder, self.image_paths[self.current_index])
 
     def load_current_image(self):
         image_path = self.image_paths[self.current_index]
@@ -111,7 +143,10 @@ class BatchPointAnnotator:
         self.viewer.layers.clear()
         self.image_layer = self.viewer.add_image(image, name=image_path.name, rgb=is_rgb_image(image))
 
-        if self.args.detect_spots:
+        output_path = self.output_path()
+        if self.args.continue_annotations and output_path.exists():
+            points = load_points_csv(output_path, ndim)
+        elif self.args.detect_spots:
             points = detect_spots(
                 image,
                 min_sigma=self.args.min_sigma,
@@ -159,6 +194,12 @@ def parse_args():
         help="Initialize the points layer with skimage.feature.blob_log detections.",
     )
     parser.add_argument(
+        "--continue",
+        dest="continue_annotations",
+        action="store_true",
+        help="Load existing point CSV files from the output folder for further correction.",
+    )
+    parser.add_argument(
         "--min-sigma",
         type=float,
         default=1,
@@ -193,9 +234,19 @@ def parse_args():
 
 def main():
     args = parse_args()
-    image_paths = find_images(args.input_folder)
-    if len(image_paths) == 0:
+    all_image_paths = find_images(args.input_folder)
+    if len(all_image_paths) == 0:
         raise RuntimeError(f"No tif images found in {args.input_folder}.")
+
+    image_paths = filter_images_for_annotation(
+        all_image_paths, args.output_folder, args.continue_annotations
+    )
+    skipped = len(all_image_paths) - len(image_paths)
+    if skipped > 0:
+        print(f"Skipping {skipped} image(s) with existing point CSV files.")
+    if len(image_paths) == 0:
+        print("All tif images already have point CSV files. Use --continue to review or correct them.")
+        return
 
     configure_cache_locations(args.output_folder)
     annotator = BatchPointAnnotator(image_paths, args.output_folder, args)
