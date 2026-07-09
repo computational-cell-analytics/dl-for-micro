@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 
 
 # Download the example data. Here, we use the same data as in the exercises.
+# You have to change this partfor your own data.
 def download_example_data():
     from torch_em.data.datasets.light_microscopy.covid_if import get_covid_if_data
     get_covid_if_data("./data/covid-if", download=True)

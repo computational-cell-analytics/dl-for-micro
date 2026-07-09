@@ -5,6 +5,7 @@ from torch_em.util.debug import check_loader
 
 
 # Download the example data. Here, we use 3D fluorescent microscopy data of nuclei.
+# Update this to use your own data instead.
 def download_example_data():
     from torch_em.data.datasets.light_microscopy.embedseg_data import get_embedseg_data
     get_embedseg_data("./data", "Mouse-Skull-Nuclei-CBG", download=True)
