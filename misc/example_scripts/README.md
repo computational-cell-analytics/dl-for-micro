@@ -6,6 +6,8 @@ This example folder contains the follwoing examples:
 - `predict_unet.py`: Run tile-based prediction with your trained model.
 - `sam_finetuning.ipynb`: Fine-tune a microSAM model on your own data.
 - `convert_to_8bit.py`: Convert tiff images to 8bit. For microSAM training.
+- `detect_and_view_points.py`: Detect points with a spot detector from skimage and display them in napari.
+- `points_to_heatmap.py`: Convert points saved in napari to a heatmap for network training.
 
 The folder `distance_unet` contains alternative versions of the scripts for training U-Nets for distance-based instance segmentation (rather than boundary-based segmentation as in the current version).
 
